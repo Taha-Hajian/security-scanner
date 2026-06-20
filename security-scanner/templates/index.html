@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اسکنر امنیت وب‌سایت</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-base:#070a14;
+    --bg-deep:#0d1530;
+    --glass:rgba(255,255,255,.055);
+    --glass-border:rgba(255,255,255,.12);
+    --glass-strong:rgba(255,255,255,.09);
+    --text-1:#eaf2ff;
+    --text-2:#8d9ac0;
+    --cyan:#33e0ff;
+    --cyan-dim:rgba(51,224,255,.18);
+    --green:#3fe0a5;
+    --green-dim:rgba(63,224,165,.16);
+    --amber:#ffc24b;
+    --amber-dim:rgba(255,194,75,.16);
+    --rose:#ff5e7a;
+    --rose-dim:rgba(255,94,122,.16);
+    --radius:20px;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    font-family:'Vazirmatn', sans-serif;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(51,224,255,.10), transparent 42%),
+      radial-gradient(circle at 85% 78%, rgba(63,224,165,.08), transparent 45%),
+      linear-gradient(160deg, var(--bg-base), var(--bg-deep) 65%, var(--bg-base));
+    background-attachment:fixed;
+    color:var(--text-1);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* بافت شبکه‌ای ظریف در پس‌زمینه، یادآور نقشه شبکه */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:42px 42px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .wrap{
+    position:relative; z-index:1;
+    max-width:880px;
+    margin:0 auto;
+    padding:64px 20px 100px;
+  }
+
+  header{
+    text-align:center;
+    margin-bottom:40px;
+    padding-top:12px;
+  }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:.5px;
+    color:var(--cyan);
+    background:var(--cyan-dim);
+    border:1px solid rgba(51,224,255,.3);
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:22px;
+  }
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--cyan); box-shadow:0 0 8px var(--cyan); animation:pulse 1.8s ease-in-out infinite;}
+
+  h1{
+    font-size:clamp(28px, 5vw, 42px);
+    font-weight:800;
+    letter-spacing:-.5px;
+    margin-bottom:14px;
+  }
+  header p{
+    color:var(--text-2);
+    font-size:16px;
+    line-height:1.9;
+    max-width:520px;
+    margin:0 auto;
+  }
+
+  /* --- کارت جستجو --- */
+  .search-card{
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+    border-radius:var(--radius);
+    padding:14px;
+    display:flex;
+    gap:10px;
+    box-shadow:0 20px 60px -25px rgba(0,0,0,.6);
+    position:relative;
+  }
+  .search-card:focus-within{
+    border-color:rgba(51,224,255,.55);
+    box-shadow:0 0 0 3px rgba(51,224,255,.15), 0 20px 60px -25px rgba(0,0,0,.6);
+  }
+  .search-card input{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text-1);
+    font-family:'JetBrains Mono', monospace;
+    font-size:15.5px;
+    padding:14px 16px;
+    direction:ltr;
+    text-align:left;
+  }
+  .search-card input::placeholder{color:#5b6584;}
+
+  .scan-btn{
+    font-family:'Vazirmatn', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    border:none;
+    cursor:pointer;
+    color:#04141a;
+    background:linear-gradient(135deg, var(--cyan), #6df0c9);
+    padding:0 26px;
+    border-radius:14px;
+    display:flex; align-items:center; gap:8px;
+    transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+    box-shadow:0 8px 24px -8px rgba(51,224,255,.55);
+  }
+  .scan-btn:hover{transform:translateY(-1px);}
+  .scan-btn:active{transform:translateY(0);}
+  .scan-btn:disabled{opacity:.6; cursor:not-allowed; transform:none;}
+  .scan-btn:focus-visible{outline:2px solid var(--text-1); outline-offset:3px;}
+  input:focus-visible{outline:none;}
+
+  .hint{
+    text-align:center;
+    color:var(--text-2);
+    font-size:13px;
+    margin-top:14px;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  /* --- وضعیت اسکن (لودینگ) --- */
+  .scan-status{
+    display:none;
+    margin-top:46px;
+    text-align:center;
+  }
+  .scan-status.active{display:block;}
+
+  .radar{
+    width:120px; height:120px;
+    margin:0 auto 26px;
+    position:relative;
+    border-radius:50%;
+    border:1px solid rgba(51,224,255,.25);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .radar::before, .radar::after{
+    content:"";
+    position:absolute;
+    border-radius:50%;
+    border:1px solid rgba(51,224,255,.18);
+  }
+  .radar::before{inset:18px;}
+  .radar::after{inset:36px;}
+  .radar-sweep{
+    position:absolute; inset:0;
+    border-radius:50%;
+    background:conic-gradient(from 0deg, rgba(51,224,255,.55), transparent 35%);
+    animation:spin 1.6s linear infinite;
+  }
+  .radar-core{
+    width:10px; height:10px;
+    border-radius:50%;
+    background:var(--cyan);
+    box-shadow:0 0 16px 4px rgba(51,224,255,.7);
+    z-index:1;
+  }
+
+  .scan-log{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13.5px;
+    color:var(--cyan);
+    min-height:20px;
+    direction:ltr;
+  }
+
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  /* --- نتیجه --- */
+  .results{display:none;}
+  .results.active{display:block; animation:fadeUp .5s ease both;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(14px);}to{opacity:1; transform:translateY(0);}}
+
+  .verdict-card{
+    margin-top:46px;
+    background:var(--glass-strong);
+    border:1px solid var(--glass-border);
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+    border-radius:var(--radius);
+    padding:34px 28px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .verdict-card.secure{box-shadow:inset 0 0 0 1px rgba(63,224,165,.35), 0 25px 70px -30px rgba(63,224,165,.25);}
+  .verdict-card.warning{box-shadow:inset 0 0 0 1px rgba(255,194,75,.35), 0 25px 70px -30px rgba(255,194,75,.25);}
+  .verdict-card.danger{box-shadow:inset 0 0 0 1px rgba(255,94,122,.35), 0 25px 70px -30px rgba(255,94,122,.25);}
+
+  .verdict-label{font-size:24px; font-weight:800; margin-bottom:6px;}
+  .secure .verdict-label{color:var(--green);}
+  .warning .verdict-label{color:var(--amber);}
+  .danger .verdict-label{color:var(--rose);}
+
+  .verdict-url{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    color:var(--text-2);
+    direction:ltr;
+    word-break:break-all;
+    margin-bottom:18px;
+  }
+
+  .vt-ring-wrap{
+    position:relative;
+    width:148px; height:148px;
+    margin:0 auto 18px;
+  }
+  .vt-ring{width:100%; height:100%; transform:rotate(-90deg);}
+  .vt-ring-bg{fill:none; stroke:rgba(255,255,255,.08); stroke-width:8;}
+  .vt-ring-fail{fill:none; stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset 1s cubic-bezier(.22,1,.36,1);}
+  .secure .vt-ring-fail{stroke:var(--green);}
+  .warning .vt-ring-fail{stroke:var(--amber);}
+  .danger .vt-ring-fail{stroke:var(--rose);}
+  .vt-ring-center{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .vt-ring-num{font-family:'JetBrains Mono', monospace; font-size:26px; font-weight:700; direction:ltr;}
+  .vt-ring-caption{font-size:11px; color:var(--text-2); margin-top:2px;}
+
+  .grid-title{
+    margin:40px 0 16px;
+    font-size:14px;
+    color:var(--text-2);
+    font-family:'JetBrains Mono', monospace;
+    display:flex; align-items:center; gap:10px;
+  }
+  .grid-title::after{content:""; flex:1; height:1px; background:var(--glass-border);}
+
+  .detection-list{
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    border-radius:16px;
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    overflow:hidden;
+  }
+  .detection-row{
+    border-bottom:1px solid var(--glass-border);
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .detection-row:last-child{border-bottom:none;}
+  .detection-row:hover{background:rgba(255,255,255,.035);}
+  .detection-row-main{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:14px;
+    padding:14px 18px;
+  }
+  .detection-left{display:flex; align-items:center; gap:12px; min-width:0;}
+  .detection-icon{
+    width:22px; height:22px; flex-shrink:0;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .pass .detection-icon{background:var(--green-dim); color:var(--green);}
+  .fail .detection-icon{background:var(--rose-dim); color:var(--rose);}
+  .detection-icon svg{width:11px; height:11px;}
+  .detection-name{font-weight:600; font-size:14.5px;}
+  .detection-status{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    font-weight:600;
+    white-space:nowrap;
+    flex-shrink:0;
+    display:flex; align-items:center; gap:6px;
+  }
+  .pass .detection-status{color:var(--green);}
+  .fail .detection-status{color:var(--rose);}
+  .detection-chevron{transition:transform .2s ease; opacity:.5;}
+  .detection-row.open .detection-chevron{transform:rotate(180deg);}
+
+  .detection-row-body{
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .25s ease;
+  }
+  .detection-row.open .detection-row-body{max-height:160px;}
+  .detection-row-body-inner{padding:0 18px 16px;}
+  .detection-desc{color:var(--text-2); font-size:13px; line-height:1.8; margin-bottom:10px;}
+  .detection-detail{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    color:var(--text-2);
+    background:rgba(0,0,0,.25);
+    border:1px solid var(--glass-border);
+    border-radius:8px;
+    padding:8px 10px;
+    direction:ltr;
+    text-align:left;
+    word-break:break-all;
+    line-height:1.6;
+  }
+
+  .error-card{
+    display:none;
+    margin-top:46px;
+    background:var(--rose-dim);
+    border:1px solid rgba(255,94,122,.4);
+    border-radius:var(--radius);
+    padding:22px;
+    text-align:center;
+    color:#ffd0da;
+  }
+  .error-card.active{display:block;}
+
+  footer{
+    text-align:center;
+    margin-top:70px;
+    color:var(--text-2);
+    font-size:12.5px;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .radar-sweep, .eyebrow .dot{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <h1>اسکنر امنیت وب‌سایت</h1>
+  </header>
+
+  <form id="scanForm" class="search-card">
+    <input
+      id="urlInput"
+      type="text"
+      placeholder="مثلاً: example.com"
+      autocomplete="off"
+      spellcheck="false"
+      required
+    />
+    <button type="submit" class="scan-btn" id="scanBtn">بررسی کن</button>
+  </form>
+  <div class="hint">نیازی به نوشتن http یا https نیست</div>
+
+  <div class="scan-status" id="scanStatus">
+    <div class="radar">
+      <div class="radar-sweep"></div>
+      <div class="radar-core"></div>
+    </div>
+    <div class="scan-log" id="scanLog">$ checking https...</div>
+  </div>
+
+  <div class="error-card" id="errorCard"></div>
+
+  <div class="results" id="results">
+
+    <div class="verdict-card" id="verdictCard">
+      <div class="vt-ring-wrap">
+        <svg class="vt-ring" viewBox="0 0 120 120">
+          <circle class="vt-ring-bg" cx="60" cy="60" r="52"/>
+          <circle class="vt-ring-fail" id="ringFail" cx="60" cy="60" r="52"/>
+        </svg>
+        <div class="vt-ring-center">
+          <span class="vt-ring-num" id="ringNum"></span>
+          <span class="vt-ring-caption">فاکتور مشکل‌دار</span>
+        </div>
+      </div>
+      <div class="verdict-label" id="verdictLabel"></div>
+      <div class="verdict-url" id="verdictUrl"></div>
+    </div>
+
+    <div class="grid-title">نتیجه بررسی موتورهای امنیتی</div>
+    <div class="detection-list" id="checksGrid"></div>
+
+  </div>
+
+  <footer>ساخته‌شده برای پروژه درسی · بررسی‌ها به‌صورت زنده و مستقیم روی سرور هدف انجام می‌شود</footer>
+</div>
+
+<script>
+  const ICONS = {
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    shieldCheck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5z"/><polyline points="9 12 11.5 14.5 16 9.5"/></svg>',
+    shieldAlert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5z"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    shieldX: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5z"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/></svg>',
+  };
+
+  const form = document.getElementById('scanForm');
+  const input = document.getElementById('urlInput');
+  const btn = document.getElementById('scanBtn');
+  const statusBox = document.getElementById('scanStatus');
+  const scanLog = document.getElementById('scanLog');
+  const results = document.getElementById('results');
+  const errorCard = document.getElementById('errorCard');
+
+  const LOG_LINES = [
+    '$ resolving host...',
+    '$ checking https connection...',
+    '$ reading ssl certificate...',
+    '$ analyzing security headers...',
+    '$ inspecting cookies...',
+    '$ calculating score...',
+  ];
+
+  let logTimer = null;
+
+  function startLog(){
+    let i = 0;
+    scanLog.textContent = LOG_LINES[0];
+    logTimer = setInterval(() => {
+      i = (i + 1) % LOG_LINES.length;
+      scanLog.textContent = LOG_LINES[i];
+    }, 650);
+  }
+  function stopLog(){ clearInterval(logTimer); }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = input.value.trim();
+    if(!url) return;
+
+    results.classList.remove('active');
+    errorCard.classList.remove('active');
+    statusBox.classList.add('active');
+    btn.disabled = true;
+    btn.textContent = 'در حال اسکن...';
+    startLog();
+    statusBox.scrollIntoView({behavior:'smooth', block:'center'});
+
+    try{
+      const res = await fetch('/scan', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({url})
+      });
+      const data = await res.json();
+
+      stopLog();
+      statusBox.classList.remove('active');
+      btn.disabled = false;
+      btn.textContent = 'بررسی کن';
+
+      if(data.error){
+        errorCard.textContent = data.error;
+        errorCard.classList.add('active');
+        errorCard.scrollIntoView({behavior:'smooth', block:'center'});
+        return;
+      }
+      renderResults(data);
+      results.scrollIntoView({behavior:'smooth', block:'start'});
+    }catch(err){
+      stopLog();
+      statusBox.classList.remove('active');
+      btn.disabled = false;
+      btn.textContent = 'بررسی کن';
+      errorCard.textContent = 'خطایی در ارتباط با سرور اسکنر رخ داد.';
+      errorCard.classList.add('active');
+    }
+  });
+
+  function renderResults(data){
+    const verdictCard = document.getElementById('verdictCard');
+    verdictCard.className = 'verdict-card ' + data.verdict;
+
+    document.getElementById('verdictLabel').textContent =
+      data.verdict === 'secure' ? 'این سایت امن است'
+      : data.verdict === 'warning' ? 'این سایت نیمه‌امن است'
+      : 'این سایت امن نیست';
+
+    document.getElementById('verdictUrl').textContent = data.url;
+
+    const failedCount = data.total - data.passed;
+    document.getElementById('ringNum').textContent = `${failedCount}/${data.total}`;
+
+    const ring = document.getElementById('ringFail');
+    const radius = 52;
+    const circumference = 2 * Math.PI * radius;
+    const fraction = data.total ? failedCount / data.total : 0;
+    ring.style.strokeDasharray = `${circumference}`;
+    ring.style.strokeDashoffset = `${circumference}`;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        ring.style.strokeDashoffset = `${circumference * (1 - fraction)}`;
+      });
+    });
+
+    const grid = document.getElementById('checksGrid');
+    grid.innerHTML = '';
+
+    const sorted = [...data.checks].sort((a, b) => (a.passed === b.passed) ? 0 : (a.passed ? 1 : -1));
+
+    sorted.forEach((c, i) => {
+      const row = document.createElement('div');
+      row.className = 'detection-row ' + (c.passed ? 'pass' : 'fail');
+      row.innerHTML = `
+        <div class="detection-row-main">
+          <div class="detection-left">
+            <span class="detection-icon">${c.passed ? ICONS.check : ICONS.x}</span>
+            <span class="detection-name">${c.title}</span>
+          </div>
+          <span class="detection-status">
+            ${c.passed ? 'موفق' : 'ناموفق'}
+            <svg class="detection-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </div>
+        <div class="detection-row-body">
+          <div class="detection-row-body-inner">
+            <div class="detection-desc">${c.desc}</div>
+            <div class="detection-detail">${escapeHtml(c.detail || '')}</div>
+          </div>
+        </div>
+      `;
+      row.querySelector('.detection-row-main').addEventListener('click', () => {
+        row.classList.toggle('open');
+      });
+      grid.appendChild(row);
+    });
+
+    results.classList.add('active');
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+</script>
+
+</body>
+</html>
